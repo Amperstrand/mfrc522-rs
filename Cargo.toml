@@ -2,7 +2,9 @@
 edition = "2021"
 name = "mfrc522"
 version = "0.8.0"
-description = "Vendored MFRC522 driver — patched for esp32-ccid (timer, register access)"
+description = "MFRC522 NFC frontend driver with I2C support (forked from upstream SPI-only crate)"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Amperstrand/mfrc522-rs"
 
 [lib]
 name = "mfrc522"
