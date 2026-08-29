@@ -447,12 +447,17 @@ impl<E, COMM: Interface<Error = E>> Mfrc522<COMM, Initialized> {
         self.command(Command::MFAuthent)?;
 
         let mut irq;
+        let mut iterations = 0u32;
         loop {
             irq = self.read(Register::ComIrqReg)?;
 
             if irq & (ERR_IRQ | IDLE_IRQ) != 0 {
                 break;
             } else if irq & TIMER_IRQ != 0 {
+                return Err(Error::Timeout);
+            }
+            iterations += 1;
+            if iterations >= 5000 {
                 return Err(Error::Timeout);
             }
         }
@@ -581,14 +586,22 @@ impl<E, COMM: Interface<Error = E>> Mfrc522<COMM, Initialized> {
             (1 << 7) | ((rx_align_bits & 0b0111) << 4) | (tx_last_bits & 0b0111),
         )?;
 
-        // TODO timeout when connection to the MFRC522 is lost (?)
         // wait for transmission + reception to complete
+        // Software iteration cap prevents infinite hang when the MFRC522
+        // hardware timer is not configured (e.g. after soft_reset resets
+        // timer registers).  At 100 kHz I2C each poll takes ~0.3 ms,
+        // so 5000 iterations ≈ 1.5 s worst-case timeout.
+        let mut iterations = 0u32;
         loop {
             let irq = self.read(Register::ComIrqReg)?;
 
             if irq & (RX_IRQ | ERR_IRQ | IDLE_IRQ) != 0 {
                 break;
             } else if irq & TIMER_IRQ != 0 {
+                return Err(Error::Timeout);
+            }
+            iterations += 1;
+            if iterations >= 5000 {
                 return Err(Error::Timeout);
             }
         }
